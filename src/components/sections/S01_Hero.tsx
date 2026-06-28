@@ -1,38 +1,91 @@
 'use client'
-import { useRef } from 'react'
 import { motion, useScroll, useTransform } from 'framer-motion'
-import { TimeStamp } from '@/components/ui/TimeStamp'
-import { NeonBadge } from '@/components/ui/NeonBadge'
-import { CRMWidget } from '@/components/ui/CRMWidget'
-import { CounterNumber } from '@/components/ui/CounterNumber'
-export function S01_Hero() {
+import { useRef } from 'react'
+
+export default function S01_Hero() {
   const ref = useRef<HTMLDivElement>(null)
-  const { scrollYProgress } = useScroll({ target: ref, offset: ['start start','end start'] })
-  const opacity = useTransform(scrollYProgress, [0,0.65], [1,0])
-  const y = useTransform(scrollYProgress, [0,1], [0,-60])
+  const { scrollYProgress } = useScroll({ target: ref, offset: ['start start', 'end start'] })
+  const y = useTransform(scrollYProgress, [0, 1], [0, 100])
+  const opacity = useTransform(scrollYProgress, [0, 0.6], [1, 0])
+
   return (
-    <div ref={ref} className="overlay" style={{ top: 0, height: '200vh' }}>
-      <motion.div style={{ opacity, y }} className="sticky top-0 h-screen flex flex-col justify-center px-8 md:px-16 max-w-2xl">
-        <TimeStamp time="6h45" theme="KPIs & Insights" />
-        <motion.div initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 2.2, duration: 1, ease: [0.16,1,0.3,1] }}>
-          <NeonBadge variant="teal" className="mb-5">Smart Real Estate CRM</NeonBadge>
-          <h1 className="text-5xl md:text-7xl font-black text-white leading-none mb-2" style={{ fontFamily:'var(--font-geist-sans)', letterSpacing:'-0.04em' }}>
-            Votre journée<br />commence.
-          </h1>
-          <h2 className="text-3xl md:text-4xl font-black mb-5" style={{ color:'#17BDD5', fontFamily:'var(--font-geist-sans)', letterSpacing:'-0.03em' }}>WHISE aussi.</h2>
-          <p className="text-slate-400 text-lg max-w-md mb-8">Chaque matin, votre CRM a déjà travaillé pour vous.</p>
+    <section ref={ref} className="relative h-screen flex items-center justify-center overflow-hidden">
+      <motion.div style={{ y, opacity }} className="relative z-10 text-center px-6 max-w-5xl mx-auto">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.8, ease: 'easeOut' }}
+        >
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="inline-flex items-center gap-2 glass px-5 py-2 rounded-full mb-8"
+          >
+            <div className="w-1.5 h-1.5 rounded-full bg-[#17BDD5] animate-pulse" />
+            <span className="font-mono text-xs text-[#17BDD5] tracking-widest">PROPTECH AI · BRUXELLES · DEPUIS 2003</span>
+          </motion.div>
+
+          <motion.h1
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4, duration: 0.8 }}
+            className="text-6xl md:text-8xl font-black text-white mb-4 leading-none tracking-tight"
+          >
+            L'IA qui{' '}
+            <span className="bg-gradient-to-r from-[#17BDD5] to-[#006AC9] bg-clip-text text-transparent">
+              révolutionne
+            </span>
+            <br />l'immobilier belge
+          </motion.h1>
+
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6 }}
+            className="text-white/60 text-lg md:text-xl max-w-2xl mx-auto mb-10 leading-relaxed"
+          >
+            WHISE connecte 4 200+ agents immobiliers à une intelligence artificielle de pointe.
+            Gérez vos leads, visites, négociations et signatures depuis un seul écran.
+          </motion.p>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.8 }}
+            className="flex flex-col sm:flex-row gap-4 justify-center"
+          >
+            <a
+              href="#pricing"
+              className="px-8 py-4 bg-[#17BDD5] text-[#050A14] font-bold rounded-xl hover:bg-[#006AC9] hover:text-white transition-all text-sm tracking-wide"
+            >
+              Démarrer gratuitement
+            </a>
+            <a
+              href="#features"
+              className="px-8 py-4 glass text-white font-semibold rounded-xl hover:bg-white/10 transition-all text-sm"
+            >
+              Découvrir la plateforme
+            </a>
+          </motion.div>
         </motion.div>
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 2.7, duration: 0.8 }} className="flex flex-col gap-3 max-w-xs mb-8">
-          <CRMWidget label="Nouveaux leads" value={<CounterNumber target={12} className="text-2xl text-white" />} icon="📩" trend="up" />
-          <CRMWidget label="Rendez-vous confirmés" value="3" icon="📅" />
-        </motion.div>
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 3, duration: 0.6 }}>
-          <button className="px-7 py-3 rounded-xl font-semibold text-white text-sm tracking-wide transition-all"
-            style={{ background:'linear-gradient(135deg,#006AC9,#17BDD5)', boxShadow:'0 0 40px rgba(23,189,213,0.35)' }}>
-            Découvrir WHISE →
-          </button>
+
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.2 }}
+          className="absolute bottom-8 left-1/2 -translate-x-1/2"
+        >
+          <div className="flex flex-col items-center gap-2 text-white/30">
+            <span className="font-mono text-xs tracking-widest">SCROLL</span>
+            <motion.div
+              animate={{ y: [0, 6, 0] }}
+              transition={{ repeat: Infinity, duration: 1.5 }}
+              className="w-px h-8 bg-gradient-to-b from-[#17BDD5] to-transparent"
+            />
+          </div>
         </motion.div>
       </motion.div>
-    </div>
+    </section>
   )
 }

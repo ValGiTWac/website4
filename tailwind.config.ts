@@ -1,19 +1,22 @@
 import type { Config } from 'tailwindcss'
+
 const config: Config = {
-  content: ['./src/**/*.{js,ts,jsx,tsx,mdx}'],
+  content: ['./src/**/*.{ts,tsx}'],
   theme: {
     extend: {
       colors: {
-        'w-blue':    '#006AC9',
-        'w-teal':    '#17BDD5',
-        'w-navy':    '#0E3A65',
-        'w-magenta': '#9E226B',
-        'w-red':     '#DC2550',
-        'w-dark':    '#050A14',
+        whise: {
+          blue: '#006AC9',
+          teal: '#17BDD5',
+          navy: '#0E3A65',
+          magenta: '#9E226B',
+          red: '#DC2550',
+          dark: '#050A14',
+        },
       },
       fontFamily: {
-        display: ['var(--font-geist-sans)', 'sans-serif'],
-        mono:    ['var(--font-geist-mono)', 'monospace'],
+        sans: ['var(--font-geist-sans)'],
+        mono: ['var(--font-geist-mono)'],
       },
     },
   },

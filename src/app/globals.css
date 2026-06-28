@@ -3,52 +3,80 @@
 @tailwind utilities;
 
 :root {
-  --w-blue:    #006AC9;
-  --w-teal:    #17BDD5;
-  --w-navy:    #0E3A65;
-  --w-magenta: #9E226B;
-  --w-red:     #DC2550;
-  --w-dark:    #050A14;
+  --blue: #006AC9;
+  --teal: #17BDD5;
+  --navy: #0E3A65;
+  --magenta: #9E226B;
+  --red: #DC2550;
+  --dark: #050A14;
 }
 
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html { background: #050A14; overflow-x: hidden; }
-body { background: #050A14; overflow-x: hidden; font-family: var(--font-geist-sans, system-ui, sans-serif); color: #94A3B8; }
-::-webkit-scrollbar { width: 0; background: transparent; }
-* { scrollbar-width: none; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
 
-/* Glass card */
+html { scroll-behavior: auto; }
+
+body {
+  background: var(--dark);
+  color: #e2e8f0;
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  overflow-x: hidden;
+}
+
+/* Lenis smooth scroll */
+html.lenis { height: auto; }
+.lenis.lenis-smooth { scroll-behavior: auto; }
+.lenis.lenis-smooth [data-lenis-prevent] { overscroll-behavior: contain; }
+.lenis.lenis-stopped { overflow: hidden; }
+.lenis.lenis-scrolling iframe { pointer-events: none; }
+
+/* Glassmorphism utility */
 .glass {
   background: rgba(5,10,20,0.65);
   backdrop-filter: blur(24px) saturate(180%);
   -webkit-backdrop-filter: blur(24px) saturate(180%);
   border: 1px solid rgba(23,189,213,0.15);
-  box-shadow: 0 0 60px rgba(23,189,213,0.08), inset 0 1px 0 rgba(255,255,255,0.05);
-  border-radius: 16px;
 }
 
-/* Gradient text */
-.grad {
-  background: linear-gradient(135deg, #17BDD5, #006AC9, #9E226B);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+/* Holographic grid overlay */
+.holo-grid {
+  background-image:
+    linear-gradient(rgba(23,189,213,0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(23,189,213,0.06) 1px, transparent 1px);
+  background-size: 60px 60px;
 }
 
-/* Fixed canvas layer */
-#world-canvas {
-  position: fixed; inset: 0;
-  width: 100vw; height: 100vh;
-  z-index: 0;
+/* Neon text glow */
+.neon-teal { text-shadow: 0 0 10px #17BDD5, 0 0 20px #17BDD5aa; }
+.neon-blue { text-shadow: 0 0 10px #006AC9, 0 0 20px #006AC9aa; }
+
+/* Scan line effect */
+@keyframes scanline {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100vh); }
+}
+.scanline {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(23,189,213,0.3), transparent);
+  animation: scanline 4s linear infinite;
   pointer-events: none;
+  z-index: 9999;
 }
 
-/* Section overlay layer */
-.overlay { position: absolute; left: 0; right: 0; pointer-events: none; z-index: 10; }
-.overlay * { pointer-events: auto; }
-
-/* Mobile fallback */
-@media (max-width: 768px) {
-  #world-canvas { display: none; }
-  .mobile-bg { position: absolute; inset: 0; z-index: 0; object-fit: cover; width: 100%; height: 100%; }
+@keyframes pulse-ring {
+  0% { transform: scale(0.9); opacity: 1; }
+  100% { transform: scale(1.4); opacity: 0; }
 }
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-8px); }
+}
+
+.animate-float { animation: float 4s ease-in-out infinite; }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: #050A14; }
+::-webkit-scrollbar-thumb { background: rgba(23,189,213,0.4); border-radius: 2px; }

@@ -1,29 +1,21 @@
 'use client'
+import dynamic from 'next/dynamic'
 import { Canvas } from '@react-three/fiber'
 import { Suspense } from 'react'
-import * as THREE from 'three'
-import { useStore } from '@/lib/store'
-import { VideoWorld } from './VideoWorld'
-import { PostFX } from './PostFX'
-import { SunLight } from './SunLight'
-import { FloatingElements } from './FloatingElements'
+
+const ScifiWorld = dynamic(() => import('./ScifiWorld'), { ssr: false })
 
 export default function WorldCanvas() {
-  const isMobile = useStore((s) => s.isMobile)
-  if (isMobile) return null
   return (
-    <div id="world-canvas">
+    <div className="fixed inset-0 z-0 hidden md:block">
       <Canvas
-        gl={{ antialias: true, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.1, alpha: false }}
-        camera={{ fov: 60, near: 0.01, far: 100, position: [0, 0, 2] }}
         dpr={[1, 1.5]}
-        style={{ width: '100%', height: '100%' }}
+        camera={{ fov: 65, near: 0.1, far: 1000 }}
+        gl={{ antialias: true, alpha: false }}
+        style={{ background: '#050A14' }}
       >
         <Suspense fallback={null}>
-          <SunLight />
-          <VideoWorld />
-          <FloatingElements />
-          <PostFX />
+          <ScifiWorld />
         </Suspense>
       </Canvas>
     </div>

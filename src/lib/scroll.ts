@@ -1,25 +1,49 @@
+'use client'
 import Lenis from 'lenis'
-import { useStore } from './store'
+import { useEffect } from 'react'
+import { useWorldStore } from './store'
+import { ZONE_BOUNDARIES } from './zones'
 
 let lenis: Lenis | null = null
 
-export function initLenis(): Lenis {
-  if (lenis) return lenis
-  lenis = new Lenis({
-    duration: 1.6,
-    easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-    orientation: 'vertical',
-    smoothWheel: true,
-    wheelMultiplier: 0.7,
-  })
-  lenis.on('scroll', ({ progress, velocity }: { progress: number; velocity: number }) => {
-    useStore.getState().setScroll(progress, velocity)
-  })
-  return lenis
-}
+export function useLenis() {
+  const { setScrollProgress, setZone } = useWorldStore()
 
-export function destroyLenis() {
-  lenis?.destroy(); lenis = null
-}
+  useEffect(() => {
+    if (typeof window === 'undefined' || window.innerWidth < 768) return
 
-export function getLenis() { return lenis }
+    lenis = new Lenis({
+      duration: 1.6,
+      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+      wheelMultiplier: 0.7,
+      touchMultiplier: 1.5,
+    })
+
+    function onRaf(time: number) {
+      lenis?.raf(time)
+      requestAnimationFrame(onRaf)
+    }
+    const id = requestAnimationFrame(onRaf)
+
+    function onScroll() {
+      if (!lenis) return
+      const docH = document.documentElement.scrollHeight - window.innerHeight
+      if (docH <= 0) return
+      const p = Math.max(0, Math.min(1, window.scrollY / docH))
+      setScrollProgress(p)
+
+      let zone = 0
+      for (let i = ZONE_BOUNDARIES.length - 2; i >= 0; i--) {
+        if (p >= ZONE_BOUNDARIES[i]) { zone = i; break }
+      }
+      setZone(zone)
+    }
+
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => {
+      lenis?.destroy()
+      cancelAnimationFrame(id)
+      window.removeEventListener('scroll', onScroll)
+    }
+  }, [setScrollProgress, setZone])
+}
