@@ -3,18 +3,13 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useWorldStore } from '@/lib/store'
 import { ZONES } from '@/lib/zones'
 
-const containerVariants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: { staggerChildren: 0.07, delayChildren: 0.1 },
-  },
-  exit: { opacity: 0, transition: { duration: 0.3 } },
-}
-
-const itemVariants = {
-  hidden: { opacity: 0, y: 20, filter: 'blur(8px)' },
-  visible: { opacity: 1, y: 0, filter: 'blur(0px)', transition: { duration: 0.5 } },
+const textVariants = {
+  hidden: { opacity: 0, y: 12, filter: 'blur(10px)' },
+  visible: (i: number) => ({
+    opacity: 1, y: 0, filter: 'blur(0px)',
+    transition: { delay: i * 0.08, duration: 0.5, ease: 'easeOut' }
+  }),
+  exit: { opacity: 0, y: -8, filter: 'blur(6px)', transition: { duration: 0.25 } },
 }
 
 export default function ZoneOverlay() {
@@ -22,33 +17,39 @@ export default function ZoneOverlay() {
   const zone = ZONES[activeZone]
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-40 pointer-events-none pb-8 px-6">
+    <div className="fixed bottom-10 left-6 z-40 pointer-events-none max-w-sm">
       <AnimatePresence mode="wait">
-        <motion.div
-          key={activeZone}
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-          exit="exit"
-          className="max-w-lg"
-        >
-          <motion.div variants={itemVariants} className="mb-2">
-            <span className="font-mono text-xs tracking-widest uppercase" style={{ color: zone.accentHex }}>
-              {zone.theme}
-            </span>
+        <motion.div key={activeZone} className="space-y-1">
+          <motion.div
+            custom={0} variants={textVariants} initial="hidden" animate="visible" exit="exit"
+            className="font-mono text-[9px] tracking-[0.3em] uppercase"
+            style={{ color: zone.accentHex, opacity: 0.8 }}
+          >
+            {zone.theme}
           </motion.div>
-          <motion.h2 variants={itemVariants} className="text-3xl font-bold text-white mb-1 leading-tight">
+          <motion.h2
+            custom={1} variants={textVariants} initial="hidden" animate="visible" exit="exit"
+            className="text-2xl font-black text-white leading-tight"
+            style={{ textShadow: `0 0 30px ${zone.accentHex}40` }}
+          >
             {zone.title}
           </motion.h2>
-          <motion.p variants={itemVariants} className="text-white/60 text-sm mb-4">
+          <motion.p
+            custom={2} variants={textVariants} initial="hidden" animate="visible" exit="exit"
+            className="text-white/40 text-xs"
+          >
             {zone.subtitle}
           </motion.p>
-          <motion.p variants={itemVariants} className="text-white/80 text-base leading-relaxed mb-5 glass px-4 py-3 rounded-xl">
-            {zone.description}
-          </motion.p>
-          <motion.div variants={itemVariants} className="glass px-4 py-3 rounded-xl inline-block">
-            <div className="font-mono text-xs text-white/40 mb-1">{zone.kpiLabel}</div>
-            <div className="text-2xl font-bold" style={{ color: zone.accentHex }}>{zone.kpiValue}</div>
+          <motion.div
+            custom={3} variants={textVariants} initial="hidden" animate="visible" exit="exit"
+            className="mt-3 pt-3 border-t border-white/8 flex items-end gap-4"
+          >
+            <div>
+              <div className="font-mono text-[9px] text-white/25 tracking-widest">{zone.kpiLabel}</div>
+              <div className="text-xl font-black leading-none mt-0.5" style={{ color: zone.accentHex, textShadow: `0 0 20px ${zone.accentHex}60` }}>
+                {zone.kpiValue}
+              </div>
+            </div>
           </motion.div>
         </motion.div>
       </AnimatePresence>

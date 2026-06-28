@@ -3,70 +3,130 @@ import { useRef, useMemo } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 
-function OrbitingSphere({ radius, speed, phase, color }: { radius: number; speed: number; phase: number; color: string }) {
-  const ref = useRef<THREE.Mesh>(null)
+/* Curved holoscreens wrapping around the camera */
+function HoloScreens() {
+  const screenCount = 9
+  const refs = useRef<(THREE.Mesh | null)[]>([])
+
   useFrame(({ clock }) => {
-    const t = clock.elapsedTime * speed + phase
-    if (ref.current) {
-      ref.current.position.set(Math.cos(t) * radius, Math.sin(t * 0.7) * 1.5, Math.sin(t) * radius)
-    }
+    refs.current.forEach((mesh, i) => {
+      if (!mesh) return
+      const t = clock.elapsedTime
+      ;(mesh.material as THREE.MeshBasicMaterial).opacity = 0.2 + 0.12 * Math.sin(t * 0.7 + i * 0.6)
+    })
   })
+
   return (
-    <mesh ref={ref}>
-      <sphereGeometry args={[0.18, 16, 16]} />
-      <meshBasicMaterial color={color} />
-    </mesh>
+    <>
+      {Array.from({ length: screenCount }, (_, i) => {
+        const angle = ((i - (screenCount - 1) / 2) / (screenCount - 1)) * Math.PI * 1.4
+        const r = 8
+        const x = Math.sin(angle) * r
+        const z = -Math.cos(angle) * r - 2
+        return (
+          <group key={i} position={[x, 0.5, z]} rotation={[0, -angle, 0]}>
+            <mesh ref={el => { refs.current[i] = el }}>
+              <planeGeometry args={[2.2, 1.4]} />
+              <meshBasicMaterial color="#006AC9" transparent opacity={0.25} side={THREE.DoubleSide} />
+            </mesh>
+            {/* Screen border glow */}
+            <mesh>
+              <planeGeometry args={[2.2, 1.4, 4, 2]} />
+              <meshBasicMaterial color="#17BDD5" wireframe transparent opacity={0.4} />
+            </mesh>
+            {/* Fake chart lines */}
+            {Array.from({ length: 4 }, (_, j) => (
+              <mesh key={j} position={[0, 0.35 - j * 0.22, 0.01]}>
+                <planeGeometry args={[1.8 * (0.4 + Math.random() * 0.6), 0.04]} />
+                <meshBasicMaterial color="#17BDD5" transparent opacity={0.4} />
+              </mesh>
+            ))}
+          </group>
+        )
+      })}
+    </>
   )
 }
 
-function HoloScreen({ position, index }: { position: [number, number, number]; index: number }) {
-  const ref = useRef<THREE.Mesh>(null)
-  useFrame(({ clock }) => {
-    if (!ref.current) return
-    ;(ref.current.material as THREE.MeshBasicMaterial).opacity = 0.25 + 0.1 * Math.sin(clock.elapsedTime * 0.8 + index)
-  })
-  return (
-    <mesh ref={ref} position={position} rotation={[0, (index - 1.5) * 0.4, 0]}>
-      <planeGeometry args={[2.5, 1.6]} />
-      <meshBasicMaterial color="#006AC9" transparent opacity={0.3} side={THREE.DoubleSide} />
-    </mesh>
-  )
-}
-
-function DataOrb() {
-  const ref = useRef<THREE.Mesh>(null)
-  useFrame(({ clock }) => {
-    if (!ref.current) return
-    ref.current.rotation.y = clock.elapsedTime * 0.3
-    ref.current.rotation.x = clock.elapsedTime * 0.15
-    ;(ref.current.material as THREE.MeshBasicMaterial).opacity = 0.15 + 0.05 * Math.sin(clock.elapsedTime)
-  })
-  return (
-    <mesh ref={ref}>
-      <icosahedronGeometry args={[2, 2]} />
-      <meshBasicMaterial color="#17BDD5" wireframe transparent opacity={0.2} />
-    </mesh>
-  )
-}
-
-export default function ZoneDashboard({ opacity = 1 }: { opacity?: number }) {
-  const screens = useMemo(() => [
-    [-4.5, 0, -2] as [number, number, number],
-    [-1.8, 0, -3] as [number, number, number],
-    [1.8, 0, -3] as [number, number, number],
-    [4.5, 0, -2] as [number, number, number],
+/* Orbiting data spheres at different heights */
+function DataOrbits() {
+  const orbits = useMemo(() => [
+    { radius: 4, speed: 0.6, phase: 0, y: 2, color: '#17BDD5', size: 0.2 },
+    { radius: 4, speed: 0.6, phase: Math.PI * 0.67, y: 2, color: '#006AC9', size: 0.18 },
+    { radius: 4, speed: 0.6, phase: Math.PI * 1.33, y: 2, color: '#9E226B', size: 0.18 },
+    { radius: 6, speed: 0.35, phase: 0.5, y: -0.5, color: '#17BDD5', size: 0.14 },
+    { radius: 6, speed: 0.35, phase: Math.PI, y: 0.5, color: '#DC2550', size: 0.14 },
+    { radius: 2.5, speed: 1.2, phase: 0, y: 3.5, color: '#17BDD5', size: 0.12 },
   ], [])
 
+  const refs = useRef<(THREE.Mesh | null)[]>([])
+
+  useFrame(({ clock }) => {
+    orbits.forEach((o, i) => {
+      if (!refs.current[i]) return
+      const t = clock.elapsedTime * o.speed + o.phase
+      refs.current[i]!.position.set(Math.cos(t) * o.radius, o.y, Math.sin(t) * o.radius)
+    })
+  })
+
+  return (
+    <>
+      {/* Orbit rings */}
+      {[4, 6, 2.5].map((r, i) => (
+        <mesh key={i} rotation={[-Math.PI / 2, 0, 0]} position={[0, [2, -0.5, 3.5][i], 0]}>
+          <ringGeometry args={[r - 0.02, r + 0.02, 64]} />
+          <meshBasicMaterial color="#17BDD5" transparent opacity={0.08} side={THREE.DoubleSide} />
+        </mesh>
+      ))}
+      {/* Spheres */}
+      {orbits.map((o, i) => (
+        <mesh key={i} ref={el => { refs.current[i] = el }}>
+          <sphereGeometry args={[o.size, 12, 12]} />
+          <meshBasicMaterial color={o.color} />
+        </mesh>
+      ))}
+    </>
+  )
+}
+
+/* Central data orb (icosahedron) */
+function CentralOrb() {
+  const outerRef = useRef<THREE.Mesh>(null)
+  const innerRef = useRef<THREE.Mesh>(null)
+
+  useFrame(({ clock }) => {
+    if (outerRef.current) {
+      outerRef.current.rotation.y = clock.elapsedTime * 0.2
+      outerRef.current.rotation.x = clock.elapsedTime * 0.1
+    }
+    if (innerRef.current) {
+      innerRef.current.rotation.y = -clock.elapsedTime * 0.4
+      const s = 1 + 0.1 * Math.sin(clock.elapsedTime * 1.5)
+      innerRef.current.scale.setScalar(s)
+    }
+  })
+
+  return (
+    <group position={[0, 1, 0]}>
+      <mesh ref={outerRef}>
+        <icosahedronGeometry args={[2.5, 1]} />
+        <meshBasicMaterial color="#17BDD5" wireframe transparent opacity={0.12} />
+      </mesh>
+      <mesh ref={innerRef}>
+        <icosahedronGeometry args={[1.2, 1]} />
+        <meshBasicMaterial color="#006AC9" wireframe transparent opacity={0.3} />
+      </mesh>
+    </group>
+  )
+}
+
+export default function ZoneDashboard() {
   return (
     <group>
-      <DataOrb />
-      {screens.map((pos, i) => <HoloScreen key={i} position={pos} index={i} />)}
-      <OrbitingSphere radius={4} speed={0.5} phase={0} color="#17BDD5" />
-      <OrbitingSphere radius={4} speed={0.5} phase={Math.PI * 0.66} color="#006AC9" />
-      <OrbitingSphere radius={4} speed={0.5} phase={Math.PI * 1.33} color="#9E226B" />
-      <OrbitingSphere radius={6} speed={0.3} phase={0.5} color="#17BDD5" />
-      <OrbitingSphere radius={6} speed={0.3} phase={Math.PI} color="#DC2550" />
-      <gridHelper args={[80, 80, '#006AC9', '#0E3A65']} position={[0, -4, 0]} material-transparent material-opacity={0.15} />
+      <CentralOrb />
+      <HoloScreens />
+      <DataOrbits />
+      <gridHelper args={[40, 20, '#006AC9', '#0E3A65']} position={[0, -3.5, 0]} material-transparent material-opacity={0.2} />
     </group>
   )
 }

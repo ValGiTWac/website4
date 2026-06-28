@@ -10,7 +10,7 @@ export default function WorldCanvas() {
     <div className="fixed inset-0 z-0 hidden md:block">
       <Canvas
         dpr={[1, 1.5]}
-        camera={{ fov: 65, near: 0.1, far: 1000 }}
+        camera={{ fov: 60, near: 0.1, far: 600 }}
         gl={{ antialias: true, alpha: false }}
         style={{ background: '#050A14' }}
       >

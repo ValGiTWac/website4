@@ -3,96 +3,118 @@ import { useRef, useMemo } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 
-function NetworkNodes() {
-  const nodesRef = useRef<THREE.InstancedMesh>(null)
-  const linesRef = useRef<THREE.LineSegments>(null)
+/* Sphere of nodes surrounding the camera */
+function NodeSphere() {
+  const count = 120
+  const meshRef = useRef<THREE.InstancedMesh>(null)
+  const dummy = useMemo(() => new THREE.Object3D(), [])
 
-  const { nodePositions, linePositions } = useMemo(() => {
-    const count = 60
-    const nodePositions: THREE.Vector3[] = []
-    for (let i = 0; i < count; i++) {
-      nodePositions.push(new THREE.Vector3(
-        (Math.random() - 0.5) * 20,
-        (Math.random() - 0.5) * 10,
-        (Math.random() - 0.5) * 10,
-      ))
+  const nodeData = useMemo(() => Array.from({ length: count }, (_, i) => {
+    const phi = Math.acos(2 * Math.random() - 1)
+    const theta = Math.random() * Math.PI * 2
+    const r = 6 + Math.random() * 10
+    return {
+      x: r * Math.sin(phi) * Math.cos(theta),
+      y: r * Math.sin(phi) * Math.sin(theta),
+      z: r * Math.cos(phi),
+      speed: 0.2 + Math.random() * 0.5,
+      phase: Math.random() * Math.PI * 2,
     }
-    const linePositions: number[] = []
-    for (let i = 0; i < count; i++) {
-      for (let j = i + 1; j < count; j++) {
-        if (nodePositions[i].distanceTo(nodePositions[j]) < 5) {
-          linePositions.push(...nodePositions[i].toArray(), ...nodePositions[j].toArray())
-        }
-      }
-    }
-    return { nodePositions, linePositions }
-  }, [])
+  }), [])
 
   useFrame(({ clock }) => {
-    if (!nodesRef.current) return
+    if (!meshRef.current) return
     const t = clock.elapsedTime
-    const dummy = new THREE.Object3D()
-    nodePositions.forEach((pos, i) => {
-      dummy.position.set(pos.x, pos.y + Math.sin(t * 0.5 + i) * 0.3, pos.z)
-      dummy.scale.setScalar(0.08 + 0.03 * Math.sin(t + i * 0.4))
+    nodeData.forEach((n, i) => {
+      const pulse = 1 + 0.2 * Math.sin(t * n.speed + n.phase)
+      dummy.position.set(n.x * pulse, n.y * pulse, n.z * pulse)
+      dummy.scale.setScalar(0.08 + 0.04 * Math.sin(t * n.speed * 2))
       dummy.updateMatrix()
-      nodesRef.current!.setMatrixAt(i, dummy.matrix)
+      meshRef.current!.setMatrixAt(i, dummy.matrix)
     })
-    nodesRef.current.instanceMatrix.needsUpdate = true
+    meshRef.current.instanceMatrix.needsUpdate = true
+    meshRef.current.rotation.y = t * 0.05
   })
 
-  const lineGeo = useMemo(() => {
+  return (
+    <instancedMesh ref={meshRef} args={[undefined, undefined, count]}>
+      <sphereGeometry args={[1, 6, 6]} />
+      <meshBasicMaterial color="#006AC9" />
+    </instancedMesh>
+  )
+}
+
+/* Connection lines between nearby nodes */
+function ConnectionLines() {
+  const geo = useMemo(() => {
+    const pts: number[] = []
+    const count = 40
+    for (let i = 0; i < count; i++) {
+      for (let j = i + 1; j < count; j++) {
+        const phi1 = Math.acos(2 * (i / count) - 1)
+        const theta1 = (i / count) * Math.PI * 6
+        const phi2 = Math.acos(2 * (j / count) - 1)
+        const theta2 = (j / count) * Math.PI * 6
+        const r = 8
+        const x1 = r * Math.sin(phi1) * Math.cos(theta1)
+        const y1 = r * Math.sin(phi1) * Math.sin(theta1)
+        const z1 = r * Math.cos(phi1)
+        const x2 = r * Math.sin(phi2) * Math.cos(theta2)
+        const y2 = r * Math.sin(phi2) * Math.sin(theta2)
+        const z2 = r * Math.cos(phi2)
+        const dist = Math.sqrt((x2-x1)**2+(y2-y1)**2+(z2-z1)**2)
+        if (dist < 6) pts.push(x1,y1,z1, x2,y2,z2)
+      }
+    }
     const g = new THREE.BufferGeometry()
-    g.setAttribute('position', new THREE.Float32BufferAttribute(linePositions, 3))
+    g.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3))
     return g
-  }, [linePositions])
+  }, [])
+
+  const ref = useRef<THREE.LineSegments>(null)
+  useFrame(({ clock }) => {
+    if (ref.current) ref.current.rotation.y = clock.elapsedTime * 0.05
+  })
 
   return (
-    <>
-      <instancedMesh ref={nodesRef} args={[undefined, undefined, nodePositions.length]}>
-        <sphereGeometry args={[1, 8, 8]} />
-        <meshBasicMaterial color="#006AC9" />
-      </instancedMesh>
-      <lineSegments ref={linesRef} geometry={lineGeo}>
-        <lineBasicMaterial color="#17BDD5" transparent opacity={0.25} />
-      </lineSegments>
-    </>
+    <lineSegments ref={ref} geometry={geo}>
+      <lineBasicMaterial color="#17BDD5" transparent opacity={0.15} />
+    </lineSegments>
   )
 }
 
-function PulseRings() {
-  const rings = useMemo(() => Array.from({ length: 6 }, (_, i) => i), [])
-  return (
-    <>
-      {rings.map(i => (
-        <PulseRing key={i} delay={i * 0.5} />
-      ))}
-    </>
-  )
-}
-
-function PulseRing({ delay }: { delay: number }) {
+/* Central pulsing AI core */
+function AICore() {
   const ref = useRef<THREE.Mesh>(null)
   useFrame(({ clock }) => {
     if (!ref.current) return
-    const t = ((clock.elapsedTime + delay) % 3) / 3
-    ref.current.scale.setScalar(1 + t * 8)
-    ;(ref.current.material as THREE.MeshBasicMaterial).opacity = (1 - t) * 0.3
+    const s = 1 + 0.15 * Math.sin(clock.elapsedTime * 2)
+    ref.current.scale.setScalar(s)
+    ref.current.rotation.y = clock.elapsedTime * 0.8
+    ref.current.rotation.x = clock.elapsedTime * 0.3
   })
   return (
-    <mesh ref={ref} rotation={[-Math.PI / 2, 0, 0]}>
-      <ringGeometry args={[0.8, 1, 32]} />
-      <meshBasicMaterial color="#006AC9" transparent opacity={0.3} side={THREE.DoubleSide} />
+    <mesh ref={ref}>
+      <icosahedronGeometry args={[1.2, 1]} />
+      <meshBasicMaterial color="#17BDD5" wireframe transparent opacity={0.6} />
     </mesh>
   )
 }
 
-export default function ZoneLeads({ opacity = 1 }: { opacity?: number }) {
+/* Floor grid */
+function LeadsFloor() {
+  return (
+    <gridHelper args={[60, 30, '#006AC9', '#0E3A65']} position={[0, -8, 0]} material-transparent material-opacity={0.2} />
+  )
+}
+
+export default function ZoneLeads() {
   return (
     <group>
-      <NetworkNodes />
-      <PulseRings />
-      <gridHelper args={[60, 60, '#006AC9', '#0E3A65']} position={[0, -4, 0]} material-transparent material-opacity={0.12} />
+      <LeadsFloor />
+      <NodeSphere />
+      <ConnectionLines />
+      <AICore />
     </group>
   )
 }

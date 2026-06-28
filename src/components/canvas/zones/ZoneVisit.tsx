@@ -3,74 +3,107 @@ import { useRef, useMemo } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 
-function BlueprintFloor() {
+/* Apartment blueprint you walk through */
+function BlueprintRoom() {
   const ref = useRef<THREE.Group>(null)
+
   useFrame(({ clock }) => {
-    if (ref.current) {
-      ref.current.rotation.y = Math.sin(clock.elapsedTime * 0.3) * 0.1
-      ref.current.position.y = Math.sin(clock.elapsedTime * 0.5) * 0.2
-    }
+    if (!ref.current) return
+    // Gentle breathing scale
+    const s = 1 + 0.01 * Math.sin(clock.elapsedTime * 0.5)
+    ref.current.scale.setScalar(s)
   })
 
   const walls = useMemo(() => [
-    { pos: [0, 1, -5] as [number,number,number], scale: [10, 2, 0.1] as [number,number,number] },
-    { pos: [0, 1, 5] as [number,number,number], scale: [10, 2, 0.1] as [number,number,number] },
-    { pos: [-5, 1, 0] as [number,number,number], scale: [0.1, 2, 10] as [number,number,number] },
-    { pos: [5, 1, 0] as [number,number,number], scale: [0.1, 2, 10] as [number,number,number] },
+    // [x, y, z, rx, ry, rz, w, h]
+    { pos: [0, 0, -10] as [number,number,number], rot: [0,0,0] as [number,number,number], w: 20, h: 6 },
+    { pos: [-10, 0, 0] as [number,number,number], rot: [0, Math.PI/2, 0] as [number,number,number], w: 20, h: 6 },
+    { pos: [10, 0, 0] as [number,number,number], rot: [0, Math.PI/2, 0] as [number,number,number], w: 20, h: 6 },
+    { pos: [0, 3, 0] as [number,number,number], rot: [Math.PI/2, 0, 0] as [number,number,number], w: 20, h: 20 }, // ceiling
   ], [])
 
   return (
     <group ref={ref}>
       {walls.map((w, i) => (
-        <mesh key={i} position={w.pos}>
-          <boxGeometry args={w.scale} />
-          <meshBasicMaterial color="#17BDD5" wireframe transparent opacity={0.4} />
+        <mesh key={i} position={w.pos} rotation={w.rot}>
+          <planeGeometry args={[w.w, w.h, Math.floor(w.w), Math.floor(w.h)]} />
+          <meshBasicMaterial color="#17BDD5" wireframe transparent opacity={0.12} side={THREE.DoubleSide} />
         </mesh>
       ))}
-      <mesh rotation={[-Math.PI / 2, 0, 0]}>
-        <planeGeometry args={[10, 10, 20, 20]} />
-        <meshBasicMaterial color="#006AC9" wireframe transparent opacity={0.2} />
-      </mesh>
-      {/* room dividers */}
-      <mesh position={[0, 1, 0]}>
-        <boxGeometry args={[10, 0.05, 0.1]} />
-        <meshBasicMaterial color="#17BDD5" transparent opacity={0.6} />
-      </mesh>
-      <mesh position={[0, 1, 0]}>
-        <boxGeometry args={[0.1, 0.05, 10]} />
-        <meshBasicMaterial color="#17BDD5" transparent opacity={0.6} />
-      </mesh>
     </group>
   )
 }
 
-function HoloDimLines() {
-  const lines = useMemo(() => {
-    const pts = [
-      [-5, 2, -5], [5, 2, -5], [5, 2, 5], [-5, 2, 5], [-5, 2, -5],
-    ]
-    const positions: number[] = []
-    for (let i = 0; i < pts.length - 1; i++) {
-      positions.push(...pts[i], ...pts[i + 1])
-    }
-    const g = new THREE.BufferGeometry()
-    g.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3))
-    return g
-  }, [])
+/* Room divider walls */
+function RoomDividers() {
+  const segs = useMemo(() => [
+    { x: -3, z: -5, len: 6, axis: 'z' },
+    { x: 4, z: -3, len: 4, axis: 'x' },
+    { x: -6, z: 2, len: 5, axis: 'z' },
+  ], [])
 
   return (
-    <lineSegments geometry={lines}>
-      <lineBasicMaterial color="#17BDD5" transparent opacity={0.5} />
-    </lineSegments>
+    <>
+      {segs.map((s, i) => (
+        <mesh
+          key={i}
+          position={[s.x, 0, s.z]}
+          rotation={[0, s.axis === 'z' ? 0 : Math.PI / 2, 0]}
+        >
+          <planeGeometry args={[s.len, 5]} />
+          <meshBasicMaterial color="#17BDD5" transparent opacity={0.08} side={THREE.DoubleSide} wireframe />
+        </mesh>
+      ))}
+    </>
   )
 }
 
-export default function ZoneVisit({ opacity = 1 }: { opacity?: number }) {
+/* Floating dimension annotations */
+function DimAnnotations() {
+  const count = 12
+  const refs = useRef<(THREE.Mesh | null)[]>([])
+
+  const data = useMemo(() => Array.from({ length: count }, (_, i) => ({
+    x: (Math.random() - 0.5) * 16,
+    y: -1 + Math.random() * 4,
+    z: -Math.random() * 10,
+    phase: i * 0.7,
+  })), [])
+
+  useFrame(({ clock }) => {
+    refs.current.forEach((mesh, i) => {
+      if (!mesh) return
+      mesh.position.y = data[i].y + 0.15 * Math.sin(clock.elapsedTime * 0.8 + data[i].phase)
+      ;(mesh.material as THREE.MeshBasicMaterial).opacity = 0.3 + 0.2 * Math.abs(Math.sin(clock.elapsedTime * 0.4 + data[i].phase))
+    })
+  })
+
+  return (
+    <>
+      {data.map((d, i) => (
+        <mesh key={i} ref={el => { refs.current[i] = el }} position={[d.x, d.y, d.z]}>
+          <planeGeometry args={[0.8 + Math.random(), 0.15]} />
+          <meshBasicMaterial color="#17BDD5" transparent opacity={0.4} side={THREE.DoubleSide} />
+        </mesh>
+      ))}
+    </>
+  )
+}
+
+/* Blueprint floor grid */
+function BPFloor() {
+  return (
+    <gridHelper args={[24, 24, '#17BDD5', '#006AC9']} position={[0, -2, -5]} material-transparent material-opacity={0.3} />
+  )
+}
+
+export default function ZoneVisit() {
   return (
     <group>
-      <BlueprintFloor />
-      <HoloDimLines />
-      <gridHelper args={[60, 60, '#17BDD5', '#006AC9']} position={[0, -3, 0]} material-transparent material-opacity={0.1} />
+      <BPFloor />
+      <BlueprintRoom />
+      <RoomDividers />
+      <DimAnnotations />
     </group>
   )
 }

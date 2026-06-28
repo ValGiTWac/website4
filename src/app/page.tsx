@@ -4,10 +4,6 @@ import HUD from '@/components/ui/HUD'
 import ZoneOverlay from '@/components/ui/ZoneOverlay'
 import NavBar from '@/components/ui/NavBar'
 import MobileView from '@/components/ui/MobileView'
-import S01_Hero from '@/components/sections/S01_Hero'
-import S02_Features from '@/components/sections/S02_Features'
-import S03_Stats from '@/components/sections/S03_Stats'
-import S04_Journey from '@/components/sections/S04_Journey'
 import S05_Pricing from '@/components/sections/S05_Pricing'
 import S06_Testimonials from '@/components/sections/S06_Testimonials'
 import S07_Integration from '@/components/sections/S07_Integration'
@@ -19,43 +15,42 @@ const WorldCanvas = dynamic(() => import('@/components/canvas/WorldCanvas'), { s
 export default function Home() {
   return (
     <>
-      {/* Scan line effect */}
+      {/* Scanline */}
       <div className="scanline" />
 
-      {/* 3D Canvas — fixed, full screen */}
+      {/* 3D World — fixed fullscreen */}
       <WorldCanvas />
 
-      {/* Lenis smooth scroll */}
+      {/* Lenis smooth scroll init */}
       <LenisInit />
 
-      {/* HUD overlay */}
+      {/* Minimal HUD overlays */}
       <HUD />
-
-      {/* Nav */}
       <NavBar />
-
-      {/* Zone name overlay (bottom-left) */}
       <ZoneOverlay />
 
       {/* Mobile fallback */}
       <MobileView />
 
-      {/* Desktop scroll content — tall enough to drive camera */}
+      {/* Desktop: tall scroll container — 8 zones × 100vh + content sections */}
       <div className="relative z-10 hidden md:block">
-        {/* Each section is transparent — content floats above the 3D canvas */}
-        {/* The scroll height drives the camera. Sections provide readable content. */}
-        <S01_Hero />
 
-        {/* Spacer sections that pair with camera zones */}
-        {[1,2,3,4,5,6,7].map(i => (
-          <div key={i} className="h-screen" />
-        ))}
+        {/* ── IMMERSIVE JOURNEY ── */}
+        {/* 800vh scroll space drives the camera through the 8 zones */}
+        <div style={{ height: '800vh' }}>
+          {/* Hero anchor text — visible only at start */}
+          <div className="h-screen flex items-end justify-center pb-32">
+            <div className="text-center">
+              <p className="font-mono text-[10px] text-white/20 tracking-[0.4em] animate-pulse">
+                SCROLL POUR EXPLORER
+              </p>
+            </div>
+          </div>
+        </div>
 
-        {/* Content sections below the 3D journey */}
-        <div className="bg-gradient-to-b from-transparent to-[#050A14]">
-          <S02_Features />
-          <S03_Stats />
-          <S04_Journey />
+        {/* ── CONTENT SECTIONS ── after the journey */}
+        <div className="relative bg-[#050A14]">
+          <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-transparent to-[#050A14] pointer-events-none" />
           <S05_Pricing />
           <S06_Testimonials />
           <S07_Integration />

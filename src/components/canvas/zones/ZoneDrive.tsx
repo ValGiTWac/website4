@@ -3,75 +3,118 @@ import { useRef, useMemo } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 
-function NeonRoad() {
-  const ref = useRef<THREE.Group>(null)
-  useFrame(({ clock }) => {
-    if (ref.current) ref.current.position.z = (clock.elapsedTime * 3) % 10
+/* Tunnel walls with neon streaks rushing past */
+function NeonTunnel() {
+  const streakCount = 80
+  const streakRef = useRef<THREE.InstancedMesh>(null)
+  const dummy = useMemo(() => new THREE.Object3D(), [])
+
+  const streaks = useMemo(() => Array.from({ length: streakCount }, () => {
+    const angle = Math.random() * Math.PI * 2
+    const r = 9 + Math.random() * 4
+    return {
+      angle,
+      r,
+      z: -Math.random() * 80,
+      speed: 15 + Math.random() * 25,
+      len: 0.5 + Math.random() * 3,
+    }
+  }), [])
+
+  useFrame((_, delta) => {
+    if (!streakRef.current) return
+    streaks.forEach((s, i) => {
+      s.z += s.speed * delta
+      if (s.z > 5) s.z = -80
+      dummy.position.set(Math.cos(s.angle) * s.r, Math.sin(s.angle) * s.r, s.z)
+      dummy.rotation.z = s.angle + Math.PI / 2
+      dummy.scale.set(0.06, s.len, 0.06)
+      dummy.updateMatrix()
+      streakRef.current!.setMatrixAt(i, dummy.matrix)
+    })
+    streakRef.current.instanceMatrix.needsUpdate = true
   })
 
-  const lines = useMemo(() => Array.from({ length: 30 }, (_, i) => i), [])
+  return (
+    <>
+      {/* Tunnel rings */}
+      {Array.from({ length: 20 }, (_, i) => (
+        <mesh key={i} position={[0, 0, -i * 5]} rotation={[Math.PI / 2, 0, 0]}>
+          <torusGeometry args={[11, 0.08, 8, 64]} />
+          <meshBasicMaterial color="#006AC9" transparent opacity={0.15} />
+        </mesh>
+      ))}
+      {/* Tunnel body */}
+      <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, 0, -50]}>
+        <cylinderGeometry args={[12, 12, 100, 32, 1, true]} />
+        <meshBasicMaterial color="#050A14" side={THREE.BackSide} transparent opacity={0.95} />
+      </mesh>
+      {/* Streaks */}
+      <instancedMesh ref={streakRef} args={[undefined, undefined, streakCount]}>
+        <boxGeometry args={[1, 1, 1]} />
+        <meshBasicMaterial color="#17BDD5" transparent opacity={0.8} />
+      </instancedMesh>
+    </>
+  )
+}
+
+/* Road center line rushing toward camera */
+function RoadLines() {
+  const ref = useRef<THREE.Group>(null)
+  useFrame(({ clock }) => {
+    if (ref.current) ref.current.position.z = (clock.elapsedTime * 20) % 8
+  })
+
   return (
     <group ref={ref}>
-      {lines.map(i => (
-        <mesh key={i} position={[0, -2.5, -i * 10]}>
-          <planeGeometry args={[0.15, 4]} />
-          <meshBasicMaterial color="#17BDD5" transparent opacity={0.8} />
+      {Array.from({ length: 20 }, (_, i) => (
+        <mesh key={i} position={[0, -9.8, -i * 8]} rotation={[Math.PI / 2, 0, 0]}>
+          <planeGeometry args={[0.3, 3]} />
+          <meshBasicMaterial color="#17BDD5" transparent opacity={0.9} />
         </mesh>
       ))}
     </group>
   )
 }
 
-function GPSNodes() {
-  const count = 40
-  const dummyRef = useRef(new THREE.Object3D())
-  const meshRef = useRef<THREE.InstancedMesh>(null)
-
-  const positions = useMemo(() => Array.from({ length: count }, () => ({
-    x: (Math.random() - 0.5) * 30,
-    z: (Math.random() - 0.5) * 30,
+/* GPS pins floating by */
+function GPSPins() {
+  const count = 20
+  const refs = useRef<(THREE.Mesh | null)[]>([])
+  const data = useMemo(() => Array.from({ length: count }, (_, i) => ({
+    x: (Math.random() - 0.5) * 8,
+    y: (Math.random() - 0.5) * 6,
+    z: -i * 4 - Math.random() * 3,
+    speed: 8 + Math.random() * 8,
   })), [])
 
-  useFrame(({ clock }) => {
-    if (!meshRef.current) return
-    const t = clock.elapsedTime
-    positions.forEach((p, i) => {
-      dummyRef.current.position.set(p.x, -2 + Math.sin(t * 0.8 + i) * 0.2, p.z)
-      dummyRef.current.scale.setScalar(0.15)
-      dummyRef.current.updateMatrix()
-      meshRef.current!.setMatrixAt(i, dummyRef.current.matrix)
+  useFrame((_, delta) => {
+    refs.current.forEach((mesh, i) => {
+      if (!mesh) return
+      data[i].z += data[i].speed * delta
+      if (data[i].z > 3) data[i].z = -80
+      mesh.position.z = data[i].z
     })
-    meshRef.current.instanceMatrix.needsUpdate = true
   })
 
   return (
-    <instancedMesh ref={meshRef} args={[undefined, undefined, count]}>
-      <octahedronGeometry args={[1, 0]} />
-      <meshBasicMaterial color="#006AC9" transparent opacity={0.9} />
-    </instancedMesh>
+    <>
+      {data.map((d, i) => (
+        <mesh key={i} ref={el => { refs.current[i] = el }} position={[d.x, d.y, d.z]}>
+          <octahedronGeometry args={[0.2, 0]} />
+          <meshBasicMaterial color="#006AC9" />
+        </mesh>
+      ))}
+    </>
   )
 }
 
-function ScanSweep() {
-  const ref = useRef<THREE.Mesh>(null)
-  useFrame(({ clock }) => {
-    if (ref.current) ref.current.rotation.y = clock.elapsedTime * 1.2
-  })
-  return (
-    <mesh ref={ref} rotation={[-Math.PI / 2, 0, 0]} position={[0, -2.4, 0]}>
-      <ringGeometry args={[0, 15, 3, 1, 0, Math.PI * 0.3]} />
-      <meshBasicMaterial color="#17BDD5" transparent opacity={0.12} side={THREE.DoubleSide} />
-    </mesh>
-  )
-}
-
-export default function ZoneDrive({ opacity = 1 }: { opacity?: number }) {
+export default function ZoneDrive() {
   return (
     <group>
-      <NeonRoad />
-      <GPSNodes />
-      <ScanSweep />
-      <gridHelper args={[80, 40, '#006AC9', '#0E3A65']} position={[0, -2.5, 0]} material-transparent material-opacity={0.15} />
+      <NeonTunnel />
+      <RoadLines />
+      <GPSPins />
     </group>
   )
 }

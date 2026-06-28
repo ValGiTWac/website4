@@ -3,106 +3,122 @@ import { useRef, useMemo } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 
-/* Wireframe city skyline */
-function CityBlock({ x, z, h }: { x: number; z: number; h: number }) {
-  const ref = useRef<THREE.Mesh>(null)
-  useFrame(({ clock }) => {
-    if (ref.current) {
-      ;(ref.current.material as THREE.MeshBasicMaterial).opacity = 0.15 + 0.05 * Math.sin(clock.elapsedTime * 0.8 + x)
-    }
+/* Digital rain columns */
+function DigitalRain() {
+  const count = 80
+  const refs = useRef<(THREE.Mesh | null)[]>([])
+
+  const data = useMemo(() => Array.from({ length: count }, (_, i) => ({
+    x: (Math.random() - 0.5) * 120,
+    z: -Math.random() * 80,
+    speed: 0.5 + Math.random() * 2,
+    startY: 30 + Math.random() * 20,
+    phase: Math.random() * Math.PI * 2,
+    h: 2 + Math.random() * 8,
+  })), [])
+
+  useFrame((_, delta) => {
+    refs.current.forEach((mesh, i) => {
+      if (!mesh) return
+      mesh.position.y -= data[i].speed * delta
+      if (mesh.position.y < -15) mesh.position.y = data[i].startY
+      ;(mesh.material as THREE.MeshBasicMaterial).opacity = 0.3 + 0.4 * Math.abs(Math.sin(mesh.position.y * 0.2 + data[i].phase))
+    })
   })
+
   return (
-    <mesh ref={ref} position={[x, h / 2 - 3, z]}>
-      <boxGeometry args={[1.2, h, 1.2]} />
-      <meshBasicMaterial color="#17BDD5" wireframe transparent opacity={0.2} />
-    </mesh>
+    <>
+      {data.map((d, i) => (
+        <mesh key={i} ref={el => { refs.current[i] = el }} position={[d.x, d.startY, d.z]}>
+          <boxGeometry args={[0.04, d.h, 0.04]} />
+          <meshBasicMaterial color="#17BDD5" transparent opacity={0.4} />
+        </mesh>
+      ))}
+    </>
   )
 }
 
-/* Floating data particles */
-function DataParticles() {
-  const ref = useRef<THREE.Points>(null)
-  const { positions, count } = useMemo(() => {
-    const count = 3000
-    const positions = new Float32Array(count * 3)
-    for (let i = 0; i < count; i++) {
-      positions[i * 3] = (Math.random() - 0.5) * 40
-      positions[i * 3 + 1] = (Math.random() - 0.5) * 20
-      positions[i * 3 + 2] = (Math.random() - 0.5) * 40
-    }
-    return { positions, count }
-  }, [])
-
-  useFrame(({ clock }) => {
-    if (ref.current) ref.current.rotation.y = clock.elapsedTime * 0.02
-  })
-
-  const geo = useMemo(() => {
-    const g = new THREE.BufferGeometry()
-    g.setAttribute('position', new THREE.BufferAttribute(positions, 3))
-    return g
-  }, [positions])
-
-  return (
-    <points ref={ref} geometry={geo}>
-      <pointsMaterial color="#17BDD5" size={0.04} transparent opacity={0.6} sizeAttenuation />
-    </points>
-  )
-}
-
-/* Scanning beam */
-function ScanBeam() {
-  const ref = useRef<THREE.Mesh>(null)
-  useFrame(({ clock }) => {
-    if (ref.current) {
-      ref.current.rotation.y = clock.elapsedTime * 0.5
-      ;(ref.current.material as THREE.MeshBasicMaterial).opacity = 0.12 + 0.05 * Math.sin(clock.elapsedTime * 2)
-    }
-  })
-  return (
-    <mesh ref={ref} position={[0, 0, 0]}>
-      <coneGeometry args={[12, 16, 32, 1, true]} />
-      <meshBasicMaterial color="#17BDD5" transparent opacity={0.12} side={THREE.DoubleSide} />
-    </mesh>
-  )
-}
-
-/* Hex grid floor */
-function HexGrid() {
-  const ref = useRef<THREE.GridHelper>(null)
-  useFrame(({ clock }) => {
-    if (ref.current) ref.current.material.opacity = 0.12 + 0.03 * Math.sin(clock.elapsedTime * 0.5)
-  })
-  return (
-    <gridHelper
-      ref={ref}
-      args={[80, 80, '#17BDD5', '#006AC9']}
-      position={[0, -3, 0]}
-      material-transparent
-      material-opacity={0.15}
-    />
-  )
-}
-
-export default function ZoneHero({ opacity = 1 }: { opacity?: number }) {
-  const buildings = useMemo(() => {
+/* City towers surrounding the camera corridor */
+function CityTowers() {
+  const towers = useMemo(() => {
     const list = []
-    for (let i = 0; i < 40; i++) {
+    for (let i = 0; i < 60; i++) {
+      const side = Math.random() > 0.5 ? 1 : -1
       list.push({
-        x: (Math.random() - 0.5) * 30,
-        z: -5 - Math.random() * 20,
-        h: 2 + Math.random() * 10,
+        x: side * (8 + Math.random() * 40),
+        z: -Math.random() * 80,
+        w: 1.5 + Math.random() * 4,
+        h: 8 + Math.random() * 35,
+        d: 1.5 + Math.random() * 4,
       })
     }
     return list
   }, [])
 
   return (
+    <>
+      {towers.map((t, i) => (
+        <group key={i} position={[t.x, 0, t.z]}>
+          {/* Tower body */}
+          <mesh position={[0, t.h / 2 - 2, 0]}>
+            <boxGeometry args={[t.w, t.h, t.d]} />
+            <meshBasicMaterial color="#0a1628" transparent opacity={0.9} />
+          </mesh>
+          {/* Wireframe overlay */}
+          <mesh position={[0, t.h / 2 - 2, 0]}>
+            <boxGeometry args={[t.w, t.h, t.d]} />
+            <meshBasicMaterial color="#17BDD5" wireframe transparent opacity={0.15} />
+          </mesh>
+          {/* Window lights */}
+          {Array.from({ length: Math.floor(t.h / 3) }, (_, j) => (
+            <mesh key={j} position={[0, j * 2.8 - 1, t.d / 2 + 0.01]}>
+              <planeGeometry args={[t.w * 0.6, 0.3]} />
+              <meshBasicMaterial color="#17BDD5" transparent opacity={0.15 + Math.random() * 0.3} />
+            </mesh>
+          ))}
+        </group>
+      ))}
+    </>
+  )
+}
+
+/* Infinite grid floor */
+function HoloFloor() {
+  return (
+    <>
+      <gridHelper args={[200, 100, '#17BDD5', '#0E3A65']} position={[0, -2, -40]} material-transparent material-opacity={0.25} />
+      {/* Glowing center strip under camera path */}
+      <mesh position={[0, -1.99, -40]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[3, 200]} />
+        <meshBasicMaterial color="#17BDD5" transparent opacity={0.06} />
+      </mesh>
+    </>
+  )
+}
+
+/* Scanning arc overhead */
+function ScanArch() {
+  const ref = useRef<THREE.Mesh>(null)
+  useFrame(({ clock }) => {
+    if (ref.current) {
+      ;(ref.current.material as THREE.MeshBasicMaterial).opacity = 0.06 + 0.04 * Math.sin(clock.elapsedTime * 0.8)
+    }
+  })
+  return (
+    <mesh ref={ref} position={[0, 8, -20]} rotation={[0, 0, 0]}>
+      <torusGeometry args={[20, 0.3, 8, 64, Math.PI]} />
+      <meshBasicMaterial color="#17BDD5" transparent opacity={0.08} />
+    </mesh>
+  )
+}
+
+export default function ZoneHero() {
+  return (
     <group>
-      <HexGrid />
-      <DataParticles />
-      <ScanBeam />
-      {buildings.map((b, i) => <CityBlock key={i} {...b} />)}
+      <HoloFloor />
+      <CityTowers />
+      <DigitalRain />
+      <ScanArch />
     </group>
   )
 }
