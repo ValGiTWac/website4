@@ -1,0 +1,41 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-canvas: #050A14;
+  --color-blue: #006AC9;
+  --color-teal: #17BDD5;
+  --color-navy: #0E3A65;
+  --color-magenta: #9E226B;
+  --color-red: #DC2550;
+  --glass-bg: rgba(6, 15, 35, 0.7);
+  --glass-border: rgba(23, 189, 213, 0.12);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { background: var(--color-canvas); color: #94A3B8; overflow-x: hidden; }
+body { background: var(--color-canvas); overflow-x: hidden; }
+::-webkit-scrollbar { width: 0px; background: transparent; }
+* { scrollbar-width: none; }
+
+.glass-card {
+  background: var(--glass-bg);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+}
+.gradient-text {
+  background: linear-gradient(135deg, #17BDD5, #006AC9, #9E226B);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.section-overlay {
+  position: absolute; left: 0; right: 0;
+  pointer-events: none; z-index: 10;
+}
+.section-overlay * { pointer-events: auto; }
+#world-canvas { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 0; }
+@media (max-width: 768px) { #world-canvas { display: none; } }
